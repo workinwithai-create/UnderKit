@@ -1,0 +1,21 @@
+UnderKit chord chart
+Key C major · 92 BPM · 4/4 · 8 bars · Pop style · one chord per bar
+Melody: Demo: Ode to Joy (public domain)
+
+| C       | G7      | Am      | G       |
+| I       | V7      | vi      | V       |
+| 1       | 57      | 6m      | 5       |
+
+| C       | G7      | Am      | Csus2   |
+| I       | V7      | vi      | Isus2   |
+| 1       | 57      | 6m      | 1sus2   |
+
+Bar by bar (fit = how well the chord holds the melody notes; sure = how clearly this chord wins here):
+Bar 1     C       I      fit  64%  sure  83%
+Bar 2     G7      V7     fit  78%  sure  77%
+Bar 3     Am      vi     fit  78%  sure  40%
+Bar 4     G       V      fit  29%  sure  31%
+Bar 5     C       I      fit  64%  sure  66%
+Bar 6     G7      V7     fit  78%  sure  62%
+Bar 7     Am      vi     fit  78%  sure  34%
+Bar 8     Csus2   Isus2  fit 100%  sure  78%

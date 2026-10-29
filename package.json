@@ -1,0 +1,8 @@
+{
+  "name": "underkit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "UnderKit: sing, hum or play a melody and get the chords that go under it. WorkinWithAI.",
+  "scripts": { "build": "rm -rf dist && mkdir -p dist && cp index.html app.js styles.css dist/ && cp -r public/samples dist/samples" },
+  "license": "UNLICENSED"
+}
