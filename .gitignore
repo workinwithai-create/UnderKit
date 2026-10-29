@@ -13,3 +13,4 @@ demo/raw/
 demo/*.mp4
 demo/*.png
 qa/*.json
+qa/out-export/
