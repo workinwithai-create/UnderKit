@@ -345,7 +345,7 @@ function stop(quiet){ clearInterval(timerId); timerId = null; const was = !!play
   paintTransport(); if (was && !quiet) setStatus("Stopped."); }
 function draw(){ if (!play) return; const now = ctx.currentTime; let cur = null; for (const e of stepLog) { if (e.time <= now) cur = e; else break; }
   if (cur) paintPlayhead(cur.s); requestAnimationFrame(draw); }
-document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { if (play) { stop(true); setStatus("Stopped because the tab was hidden. Any unfinished pass was dropped. Press Play to start again."); } liveAllOff(); } });
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { if (play) { stop(true); setStatus("Stopped because the tab was hidden. Anything you recorded in the unfinished pass was kept as a partial take. Press Play to start again."); } liveAllOff(); } });
 async function measureStopSilence(){ const a = new Float32Array(bus.anT.fftSize), t0 = performance.now(); stop(); for (let i = 0; i < 200; i++) { await new Promise(r => setTimeout(r, 2)); bus.anT.getFloatTimeDomainData(a); let p = 0; for (const x of a) p = Math.max(p, Math.abs(x)); if (p < 0.001) return { ms: performance.now() - t0, peak: p }; } return { ms: null }; }
 
 // ---------- recording: every full loop pass becomes a take (MIDI keys = notes; mic = dry audio + transcribed notes) ----------
@@ -354,21 +354,24 @@ async function startRec(){ await ensureCtx(); if (!mic && !midiInPort && !state.
   const wasPlaying = !!play; capChunks.length = 0; recNotes.length = 0;
   if (wasPlaying) rec = { passes: [], made: 0 }; else { armNext = true; if (!start()) { armNext = false; return false; } }
   if (mic) mic.node.port.postMessage({ rec: true });
-  paintTransport(); setStatus(wasPlaying ? "Armed: takes start at the top of the next pass." : `Recording: sing, hum or play your melody. Every full ${state.bars}-bar pass becomes a take. Press Stop when you're done.`); return true; }
+  paintTransport(); setStatus(wasPlaying ? "Armed: takes start at the top of the next pass." : `Recording: sing, hum or play your melody. Every ${state.bars}-bar pass becomes a take, and if you stop mid-pass the partial take is kept. Press Stop when you're done.`); return true; }
 function latencyS(){ return (ctx ? (ctx.outputLatency || ctx.baseLatency || 0) : 0) + (mic ? mic.inLat : 0) + state.latFixMs / 1000; }
 function recTick(){ while (rec && rec.passes.length) { const p = rec.passes[0], ld = p.bars * 4 * 60 / p.bpm; if (ctx.currentTime > p.t0 + ld + latencyS() + 0.06) finishPass(rec.passes.shift()); else break; } }
 const newId = p => p + Date.now().toString(36) + state.nextTake;
-function finishPass(p){ const ld = p.bars * 4 * 60 / p.bpm, made = []; let num = 0; const passNo = () => num || (num = state.nextTake++);
+function finishPass(p){ const ld = p.bars * 4 * 60 / p.bpm, made = []; let num = 0; const passNo = () => (num || (num = state.nextTake++)) + (p.partialEnd ? " (partial)" : "");
   if (p.bpm !== state.bpm || p.bars !== state.bars || p.key !== state.keyRoot) { setStatus("Tempo, key or length changed during the pass, so it wasn't kept as a take."); return; }
-  const sd = 60 / p.bpm / 4, ns = recNotes.filter(n => n.on >= p.t0 - 0.03 && n.on < p.t0 + ld - 0.03).map(n => ({ n: n.note, v: Math.round(n.vel * 1000) / 1000, s: Math.max(0, Math.round((n.on - p.t0) / sd * 1000) / 1000), d: Math.max(0.25, Math.round((Math.min(n.off != null ? n.off : p.t0 + ld, p.t0 + ld) - n.on) / sd * 1000) / 1000) }));
+  const sd = 60 / p.bpm / 4, ns = recNotes.filter(n => n.on >= p.t0 - 0.03 && n.on < p.t0 + ld - 0.03).map(n => ({ n: n.note, v: Math.round(n.vel * 1000) / 1000, s: Math.max(0, Math.round((n.on - p.t0) / sd * 1000) / 1000), d: Math.max(0.25, Math.round((Math.min(n.off != null ? n.off : (p.partialEnd || p.t0 + ld), p.t0 + ld) - n.on) / sd * 1000) / 1000) }));
   if (ns.length) { const t = { id: newId("k"), name: "Keys " + passNo(), src: "keys", key: p.key, bpm: p.bpm, bars: p.bars, notes: ns, audio: false }; state.takes.push(t); made.push(t); }
   if (mic) { const data = sliceCapture(p.t0, ld); let pk = 0; for (let i = 0; i < data.length; i++) pk = Math.max(pk, Math.abs(data[i]));
     if (pk > 0.003) { const notes = transcribe(data, ctx.sampleRate, p.bpm, p.bars);
       if (notes.length) { const t = { id: newId("v"), name: "Voice " + passNo(), src: "voice", key: p.key, bpm: p.bpm, bars: p.bars, notes, audio: true }; voiceData[t.id] = { sr: ctx.sampleRate, data }; idb.put({ id: t.id, sr: ctx.sampleRate, data }); state.takes.push(t); made.push(t); } } }
   const keep = p.t0 + ld - 1; for (let i = capChunks.length - 1; i >= 0; i--) if ((capChunks[i].f + capChunks[i].d.length) / ctx.sampleRate < keep + latencyS()) capChunks.splice(i, 1);
   if (made.length) state.active = made[made.length - 1].id;
-  save(); if (rec) rec.made += made.length; paintAll(); setStatus(made.length ? `Kept ${made.map(t => t.name + " (" + t.notes.length + " notes)").join(" + ")} and harmonized it. Keep going: the next pass is the next take.` : "That pass was silent, so no take was kept."); }
-function endRec(discard){ if (!rec) return; const p = rec.passes.length; rec = null; if (mic) mic.node.port.postMessage({ rec: false }); paintTransport(); if (p && discard) setStatus("Stopped. The unfinished pass was dropped; full passes are kept as takes."); }
+  save(); if (rec) rec.made += made.length; paintAll(); setStatus(made.length ? `Kept ${made.map(t => t.name + " (" + t.notes.length + " notes)").join(" + ")} and harmonized it. ${p.partialEnd ? 'Partial pass kept up to where you stopped.' : 'Keep going: the next pass is the next take.'}` : "That pass was silent, so no take was kept."); }
+function endRec(discard){ if (!rec) return; const now = ctx ? ctx.currentTime : 0, open = rec.passes.filter(p => p.t0 < now - 0.25); rec = null;
+  // partial takes are kept: the unfinished pass becomes a take up to the moment you stopped (rest of the loop is silent / no notes)
+  for (const p of open) { if (now < p.t0 + p.bars * 240 / p.bpm) p.partialEnd = now; finishPass(p); }
+  if (mic) mic.node.port.postMessage({ rec: false }); paintTransport(); }
 
 // ---------- pitch: YIN on a 16 kHz copy -> notes (median-smoothed, split on pitch jumps and re-attacks) ----------
 const median = a => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : 0; };

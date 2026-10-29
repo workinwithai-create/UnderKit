@@ -14,7 +14,7 @@ Click any bar to swap in one of the ranked alternatives or type your own chord, 
   - Web MIDI keyboard (velocity, sustain pedal CC64; notes never start the transport) or on-screen/computer keys (A W S E D F T G Y H U J K).
   - Mic: YIN pitch tracking, split on pitch moves and re-attacks, snapped to 16ths/8ths or left as sung. Raw audio kept in IndexedDB.
   - Import a voice memo (WAV/MP3/M4A; a long file splits into loop-length passes) or a .mid file (top line of the busiest track).
-  - Every full loop pass becomes a take; switch takes any time. While recording you hear click only, drums + click, or the band.
+  - Every loop pass becomes a take, and stopping mid-pass (or locking the screen) keeps the partial take; switch takes any time. While recording you hear click only, drums + click, or the band.
 - **Chords under it:**
   - Four styles, all shown at once with their average fit: Simple (I IV V vi ii + V7), Pop (adds iii, sus, add9), Moody (borrowed bVI/bVII/iv), Color (7ths, secondary dominants).
   - The harmonizer weights each melody note by length, beat position and velocity, scores every candidate chord, then a Viterbi pass picks the progression that fits the melody *and* moves well. Forward-backward posteriors give the "sure" number.

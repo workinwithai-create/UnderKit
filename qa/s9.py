@@ -112,7 +112,7 @@ async def main():
       const t0=f.ctx().currentTime; let i=0; const go=()=>{ const n=mel[i%16]; I.onmidimessage({data:new Uint8Array([0x90,n,70+(i%3)*20])}); setTimeout(()=>I.onmidimessage({data:new Uint8Array([0x80,n,0])}),420); i++; }; window.__feed=setInterval(go,500); go(); }""")
     await pg.wait_for_timeout(17500); await pg.evaluate("()=>clearInterval(window.__feed)"); await pg.click('#play'); await pg.wait_for_timeout(500)
     rc=await pg.evaluate(f"""()=>{{const f={F}; return {{takes:f.state.takes.slice({nt0}).map(t=>({{name:t.name,src:t.src,notes:t.notes.length,vels:[...new Set(t.notes.map(n=>Math.round(n.v*127)))].sort((a,b)=>a-b),bars:t.bars,bpm:t.bpm}})), active:f.state.active, chords:f.harm().segs.map(s=>s.name), status:document.getElementById('status').textContent}}}}""")
-    rc['pass']=len(rc['takes'])>=1 and all(t['src']=='keys' and t['notes']>=12 for t in rc['takes']) and rc['chords'][0] in ('Am','Am7','Am9')
+    rc['partial_kept']=any('(partial)' in t['name'] and t['notes']>=1 for t in rc['takes']); rc['pass']=rc['partial_kept'] and len([t for t in rc['takes'] if '(partial)' not in t['name']])>=1 and all(t['src']=='keys' and t['notes']>=12 for t in rc['takes'] if '(partial)' not in t['name']) and rc['chords'][0] in ('Am','Am7','Am9')
     res['recording_midi']=rc
     # ---- recording with the mic (Chromium fake mic plays a real sampled flute recording of the melody)
     await setv(pg,'bpm',92); await setv(pg,'bars',8); await sel(pg,'key','0'); await sel(pg,'mode','major')
@@ -120,7 +120,7 @@ async def main():
     for _ in range(15): mm.append(await pg.evaluate("()=>parseFloat(document.getElementById('meterBar').style.width)||0")); await pg.wait_for_timeout(100)
     await sel(pg,'midiIn',''); nt1=await pg.evaluate(f"()=>{F}.state.takes.length"); await pg.click('#rec'); await pg.wait_for_timeout(int(8*4*60/92*1000*2+2500)); await pg.click('#play'); await pg.wait_for_timeout(800)
     vr=await pg.evaluate(f"""()=>{{const f={F}; return {{takes:f.state.takes.slice({nt1}).map(t=>({{name:t.name,src:t.src,notes:t.notes.length,secs:f.voiceData[t.id]?+(f.voiceData[t.id].data.length/f.voiceData[t.id].sr).toFixed(3):null}})), mic:document.getElementById('micState').textContent, latency_s:f.latencyS()}}}}""")
-    vr['meter_max_pct']=max(mm); vr['loop_s']=round(8*4*60/92,3); vr['pass']=len(vr['takes'])>=1 and all(t['src']=='voice' and t['notes']>=8 and abs(t['secs']-vr['loop_s'])<0.01 for t in vr['takes']) and vr['meter_max_pct']>0
+    vr['meter_max_pct']=max(mm); vr['loop_s']=round(8*4*60/92,3); vr['pass']=len([t for t in vr['takes'] if '(partial)' not in t['name']])>=1 and all(t['src']=='voice' and abs(t['secs']-vr['loop_s'])<0.01 and (t['notes']>=8 or '(partial)' in t['name']) for t in vr['takes']) and vr['meter_max_pct']>0
     res['recording_mic']=vr
     # ---- import: a real recording (sampled flute playing Ode to Joy, 92 BPM) -> transcribed -> same chords as the demo notes
     b64=base64.b64encode(open(FIX,'rb').read()).decode(); await pg.evaluate("async b=>await window.__underkit.importBytes(b,'ode-memo.wav','audio/wav')",b64)
