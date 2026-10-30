@@ -39,17 +39,9 @@ Click any bar to swap in one of the ranked alternatives or type your own chord, 
 - Demo melody: "Ode to Joy" (Beethoven), public domain. Full credits: [public/samples/CREDITS.md](public/samples/CREDITS.md).
 
 ## Pricing
-- **Launch (no Lemon Squeezy product configured yet):** everything is free, at every length ("Launch: full exports free until checkout opens"). Gating switches on by itself once `LEMON.storeId` + `LEMON.productId` are set.
-- **Free (once checkout is live):** record, harmonize, swap/lock chords, play; export WAV, MIDI and the chord chart up to 8 bars.
-- **UnderKit license: $19 once** (no subscription). Unlocks 16-bar exports and the stems ZIP.
-- **Why one-time:**
-  - It's a focused tool you reach for when a melody is stuck, not a daily service.
-  - It runs entirely in the browser, so there are no server or AI costs per user.
-  - Songwriters on Reddit and X push back on subscriptions for single-job tools, and $19 is an easy impulse buy next to a $10/month theory app.
-- **Where to sell:** Lemon Squeezy.
-  - It issues license keys (the gate only accepts keys for this `storeId`/`productId`) and handles VAT and sales tax as merchant of record.
-  - Gumroad also works for a one-time sale.
-  - Bandcamp only makes sense bundled with a sample or MIDI pack.
+**This desk is free.** No license key required. Full exports at every length are available.
+
+(License gate code remains for a future paid unlock if desired; currently unconfigured so all features are open.)
 
 ## Run locally
 `npm run build` copies the static files into `dist/`. Serve `dist/` with any static server (`python3 -m http.server -d dist`).
